@@ -34,7 +34,7 @@ ARG BUILDDIR
 ARG USER
 WORKDIR $WORKDIR
 
-RUN pacman -Sy --noconfirm --needed rtorrent npm sudo
+RUN pacman -Sy --noconfirm --needed rtorrent npm
 COPY --from=BUILD $BUILDDIR $WORKDIR
 COPY rtorrent.rc /etc/
 COPY start.sh /usr/bin
