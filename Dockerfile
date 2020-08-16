@@ -1,49 +1,42 @@
-ARG NODE_IMAGE=node:12.2-alpine
-ARG WORKDIR=/usr/src/app/
+ARG NODE_IMAGE=node:14.8.0-alpine3.10
+ARG RUNTIME_IMAGE=archlinux:20200705
+ARG BUILDDIR=/usr/src/flood/
+ARG WORKDIR=/opt/flood
 
-FROM ${NODE_IMAGE} as nodebuild
-ARG WORKDIR
+FROM ${NODE_IMAGE} as BUILD
+ARG BUILDDIR
+WORKDIR $BUILDDIR
 
-WORKDIR $WORKDIR
-
-# Generate node_modules
 COPY package.json \
-     package-lock.json \
-     .babelrc \
-     .eslintrc.js \
-     .eslintignore \
-     .prettierrc \
+ 	 package-lock.json \
+   	 .babelrc \
+	 .eslintrc.js \
+	 .eslintignore \
+	 .prettierrc \
      ABOUT.md \
-     $WORKDIR
+	 $BUILDDIR
 RUN apk add --no-cache --virtual=build-dependencies \
     python build-base && \
     npm install && \
     apk del --purge build-dependencies
-
-# Build static assets and remove devDependencies.
 COPY client ./client
 COPY server ./server
 COPY shared ./shared
 COPY scripts ./scripts
-COPY config.docker.js ./config.js
+COPY config.js ./config.js
 RUN npm run build && \
     npm prune --production
 
-# Now get the clean image without any dependencies and copy compiled app
-FROM ${NODE_IMAGE} as flood
+FROM ${RUNTIME_IMAGE}
 ARG WORKDIR
-
+ARG BUILDDIR
 WORKDIR $WORKDIR
 
-# Install runtime dependencies.
-RUN apk --no-cache add \
-    mediainfo
+RUN pacman -Sy --noconfirm --needed rtorrent npm
+COPY --from=BUILD $BUILDDIR $WORKDIR
+COPY rtorrent.rc /etc/
+COPY start.sh /usr/bin
+RUN chmod a+x /usr/bin/start.sh
 
-COPY --from=nodebuild $WORKDIR $WORKDIR
-
-# Hints for consumers of the container.
 EXPOSE 3000
-VOLUME ["/data"]
-
-# Start application.
-CMD [ "npm", "start" ]
+CMD [ "start.sh" ]
