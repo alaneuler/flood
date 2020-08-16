@@ -2,6 +2,7 @@ ARG NODE_IMAGE=node:14.8.0-alpine3.10
 ARG RUNTIME_IMAGE=archlinux:20200705
 ARG BUILDDIR=/usr/src/flood/
 ARG WORKDIR=/opt/flood
+ARG USER=alaneuler
 
 FROM ${NODE_IMAGE} as BUILD
 ARG BUILDDIR
@@ -30,13 +31,18 @@ RUN npm run build && \
 FROM ${RUNTIME_IMAGE}
 ARG WORKDIR
 ARG BUILDDIR
+ARG USER
 WORKDIR $WORKDIR
 
-RUN pacman -Sy --noconfirm --needed rtorrent npm
+RUN pacman -Sy --noconfirm --needed rtorrent npm sudo
 COPY --from=BUILD $BUILDDIR $WORKDIR
 COPY rtorrent.rc /etc/
 COPY start.sh /usr/bin
 RUN chmod a+x /usr/bin/start.sh
 
+RUN useradd -m -s /bin/bash $USER
+RUN mkdir -p /opt/ && chown -R alaneuler:alaneuler /opt/
+
+USER alaneuler
 EXPOSE 3000
 CMD [ "start.sh" ]
