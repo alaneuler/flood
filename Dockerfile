@@ -41,8 +41,8 @@ COPY start.sh /usr/bin
 RUN chmod a+x /usr/bin/start.sh
 
 RUN useradd -m -s /bin/bash $USER
-RUN mkdir -p /opt/ && chown -R alaneuler:alaneuler /opt/
+RUN mkdir -p /opt/ && chown -R $USER:$USER /opt/
 
-USER alaneuler
+USER $USER
 EXPOSE 3000
 CMD [ "start.sh" ]
